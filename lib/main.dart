@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'quiz_brain.dart';
+import 'responses.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 
 void main() => runApp(Quizzler());
 
@@ -25,6 +28,58 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
+  bool quizCase;
+  Responses response = new Responses();
+  QuizBrain quizBrain = new QuizBrain();
+  String question;
+  void handleResponse(bool userResponse) {
+    setState(() {
+      response.answerIs(userResponse == quizBrain.getAnswer());
+      print(response.answers().asMap());
+      quizCase = quizBrain.nextQuestion();
+      if (quizCase) {
+        question = quizBrain.getQuestion();
+      } else {
+        endQuiz();
+      }
+    });
+  }
+
+  void endQuiz() {
+    Alert(
+      context: context,
+      type: AlertType.success,
+      style: AlertStyle(
+        isOverlayTapDismiss: false,
+        isCloseButton: false,
+      ),
+      title: "Quiz Finished",
+      content: Wrap(
+        alignment: WrapAlignment.center,
+        children: response.answers(),
+      ),
+      desc:
+          "You have done it, number of correct answers is ${response.numberOfCorrectAnswers(clear: false)} \nYour answers in sequence are:",
+      buttons: [
+        DialogButton(
+          child: Text(
+            "RESTART",
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          onPressed: () {
+            quizBrain.restartQuiz();
+            setState(() {
+              question = null;
+              response.numberOfCorrectAnswers(clear: true);
+            });
+            Navigator.pop(context);
+          },
+          width: 120,
+        ),
+      ],
+    ).show();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -37,7 +92,7 @@ class _QuizPageState extends State<QuizPage> {
             padding: EdgeInsets.all(10.0),
             child: Center(
               child: Text(
-                'This is where the question text will go.',
+                question ?? quizBrain.getQuestion(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 25.0,
@@ -61,7 +116,7 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               onPressed: () {
-                //The user picked true.
+                handleResponse(true);
               },
             ),
           ),
@@ -79,19 +134,21 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               onPressed: () {
-                //The user picked false.
+                handleResponse(false);
               },
             ),
           ),
         ),
-        //TODO: Add a Row here as your score keeper
+        Container(
+          height: 20,
+          child: Row(
+            children: response.answers(),
+          ),
+        ),
+        SizedBox(
+          height: 20,
+        ),
       ],
     );
   }
 }
-
-/*
-question1: 'You can lead a cow down stairs but not up stairs.', false,
-question2: 'Approximately one quarter of human bones are in the feet.', true,
-question3: 'A slug\'s blood is green.', true,
-*/
